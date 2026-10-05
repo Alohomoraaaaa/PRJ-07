@@ -192,6 +192,74 @@ class TestDynamicGoldenConsolidation(unittest.TestCase):
         sarah = df_master[df_master["member_id"] == "P-101"].iloc[0]
         self.assertEqual(sarah["cluster_size"], 2)
 
+    def test_fresh_run_isolation_and_ecommerce_domain(self):
+        """
+        Verify that sequential runs with completely different schemas
+        (e.g., Healthcare first, then E-Commerce) have ZERO data or column contamination.
+        The E-Commerce golden master must contain ONLY e-commerce columns, with zero healthcare residue.
+        """
+        df_store_1 = pd.DataFrame([
+            {"product_sku": "SKU-9901", "product_title": "Wireless Mechanical Keyboard", "brand_name": "Keychron", "retail_price": "89.99", "item_category": "Electronics"},
+            {"product_sku": "SKU-9902", "product_title": "Ergonomic Vertical Mouse", "brand_name": "Logitech", "retail_price": "69.99", "item_category": "Accessories"},
+        ])
+
+        df_store_2 = pd.DataFrame([
+            {"sku_code": "SKU-9901", "item_name": "Keychron K2 Wireless Mechanical Keyboard (RGB)", "manufacturer": "Keychron", "price_usd": "89.99", "department": "Peripherals"},
+            {"sku_code": "SKU-9903", "item_name": "USB-C Dual 4K Docking Station", "manufacturer": "Anker", "price_usd": "129.99", "department": "Hubs & Docks"},
+        ])
+
+        mapping_1 = {
+            "product_sku": "member_id",
+            "product_title": "name",
+            "brand_name": "company",
+            "retail_price": "price",
+            "item_category": "category",
+        }
+
+        mapping_2 = {
+            "sku_code": "member_id",
+            "item_name": "name",
+            "manufacturer": "company",
+            "price_usd": "price",
+            "department": "category",
+        }
+
+        specs = [
+            {"source_id": "shopify_store", "source_name": "Shopify Catalog", "dataframe": df_store_1, "mapping": mapping_1},
+            {"source_id": "amazon_store", "source_name": "Amazon US Inventory", "dataframe": df_store_2, "mapping": mapping_2},
+        ]
+
+        summary = run_dynamic_user_pipeline(specs, db_path=self.test_db_path, reset_db=True)
+
+        self.assertEqual(summary["total_records"], 4)
+        self.assertEqual(summary["total_entities"], 3)
+        self.assertTrue(summary.get("total_edges", 0) >= 1)
+
+        df_master = get_unified_master_dataframe(self.db)
+        self.assertEqual(len(df_master), 3)
+
+        # 1. Check E-Commerce columns present
+        self.assertIn("member_id", df_master.columns)
+        self.assertIn("name", df_master.columns)
+        self.assertIn("company", df_master.columns)
+        self.assertIn("price", df_master.columns)
+        self.assertIn("category", df_master.columns)
+
+        # 2. Strict Isolation: ZERO contamination from previous healthcare / demographics tests
+        self.assertNotIn("diagnosis", df_master.columns)
+        self.assertNotIn("lab_test", df_master.columns)
+        self.assertNotIn("aadhaar", df_master.columns)
+        self.assertNotIn("email", df_master.columns)
+        self.assertNotIn("phone", df_master.columns)
+        self.assertNotIn("city", df_master.columns)
+
+        # 3. Merged SKU entity check
+        k2_keyboard = df_master[df_master["member_id"] == "SKU-9901"].iloc[0]
+        self.assertEqual(k2_keyboard["cluster_size"], 2)
+        self.assertEqual(k2_keyboard["company"], "Keychron")
+        # Completeness / length heuristic chooses longer title
+        self.assertIn("Keychron K2 Wireless Mechanical Keyboard", k2_keyboard["name"])
+
 
 if __name__ == "__main__":
     unittest.main()

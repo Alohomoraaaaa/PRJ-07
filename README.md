@@ -1,107 +1,146 @@
-# Nexus • Multi-Database Entity Resolution & Master Data Platform (PRJ-07)
+# Nexus • Multi-Database Entity Resolution & Golden Master Platform (PRJ-07)
 
-A production-grade, stakeholder-facing Master Data Management (MDM) and Entity Resolution platform that ingests multiple heterogeneous databases, automatically proposes AI-assisted schema mappings, performs deterministic record linkage, and synthesizes an authoritative **Golden Master Dataset** backed by embedded columnar DuckDB storage with full field-level provenance and CSV export.
+A production-grade, domain-agnostic Master Data Management (MDM) and Entity Resolution platform. Ingests heterogeneous datasets across arbitrary schemas, performs AI-assisted schema mapping using Gemini 2.5 Flash-Lite with deterministic fallback, executes high-precision record linkage via inverted identifier indexing and Union-Find graph clustering, and synthesizes an authoritative **Golden Master Dataset** (1 Row = 1 Entity, 1 Column = 1 Consolidated Semantic Attribute) backed by embedded columnar DuckDB storage with complete field-level provenance and CSV export.
 
 ---
 
-## 🌟 Executive Product Highlights
+## 🌟 Core System Capabilities
 
-1. **Self-Service Multi-Source Ingestion**:
-   - Upload 2 or more CSV datasets or SQL database dumps with arbitrary, disparate schemas (e.g. `email_id` vs `contact_email`, `full_name` vs `person_name`).
-   - No predefined schemas or hardcoded source names required.
+1. **Domain-Agnostic Multi-Source Ingestion**:
+   - Ingest 2 or more CSV datasets or SQL database dumps with arbitrary, disparate structures (e.g., Customer Demographics, Social Media, Healthcare, HR/Employee).
+   - Zero hardcoded schemas or column name assumptions.
 
 2. **AI-Assisted Schema Mapping Studio**:
-   - Deterministic semantic detection via RapidFuzz token matching and synonym dictionaries.
-   - Shows explainable confidence scores and plain-English matching reasoning for every column.
-   - Stakeholder review workflow: approve, reassign, or unmap fields.
-   - Cross-dataset compatibility validation: alerts users if datasets share no common identity linkers.
+   - Analyzes column headers and 2–3 sample values per column using **Gemini 2.5 Flash-Lite** (`GEMINI_API_KEY`).
+   - Deterministic rule-based taxonomy fallback for offline or air-gapped environments.
+   - Interactive stakeholder review: approve, reassign, or customize canonical mappings.
 
 3. **Deterministic Record Linkage & Conflict Resolution**:
-   - Uses Inverted Identifier Indices + Disjoint Set Union (`UnionFind`) as the single source of truth.
-   - 5-tier explainable conflict resolution (unanimous consensus, majority vote, source authority priority, completeness length heuristic, deterministic sort).
-   - Zero record loss: unmatched records are preserved as standalone singleton entities (`cluster_size = 1`).
+   - Strict non-null inverted index matching on high-confidence identifiers (Email, Phone, Aadhaar, Username, Member ID) + composite rules.
+   - Disjoint-Set Union (`UnionFind`) clustering with zero false collapse on missing/blank values.
+   - 6-tier deterministic conflict resolution:
+     1. Non-Null Filter
+     2. Unanimous Consensus
+     3. Majority Voting
+     4. Source Authority Priority
+     5. Completeness / Length Heuristic
+     6. Deterministic Lexicographical Fallback.
 
-4. **Progressive Entity Enrichment Explorer**:
-   - Search by any mapped identifier (Email, Phone, Username, ID) on **any user-uploaded dataset**.
-   - Chronologically replays recursive multi-hop discovery across disconnected sources with step cards and interactive network subgraphs.
+4. **Dynamic Golden Master Dataset Synthesis**:
+   - **1 Row = 1 Resolved Entity**: Cross-database linkages deduplicated, singletons preserved with zero data loss.
+   - **1 Column = 1 Consolidated Semantic Attribute**: Multiple source column variations (e.g. `bio_text` and `user_bio` $\rightarrow$ `bio`) merge into one golden attribute column without raw column duplication.
+   - 1-click **Download Master Dataset (CSV)**.
 
-5. **Stakeholder Explainability & Field-Level Lineage**:
-   - Detailed inspector explaining **WHY** records were merged and **WHY** each final attribute value won.
-   - Traceable link to original raw strings (`raw_fields_json`) and normalized values (`norm_fields_json`).
-
-6. **Instant Master Dataset Export**:
-   - 1-click **Download Unified Master Dataset (CSV)** for downstream BI, CRM, or data warehouse pipelines.
+5. **Entity Search & Lineage Audit (Step 6)**:
+   - Search the active master repository by any populated identifier (Email, Phone, Aadhaar, Username, Member ID).
+   - Replays multi-hop graph discovery trails and displays field-level provenance showing which source dataset contributed each attribute and which resolution rule was applied.
 
 ---
 
 ## 🚀 Quick Start Guide
 
-### 1. Activate Environment & Install Dependencies
-```powershell
+### 1. Environment Setup
+```bash
+# Windows PowerShell
+python -m venv .venv
 .\.venv\Scripts\Activate.ps1
+
+# Linux / macOS
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-### 2. Run Automated Test Suite
-```powershell
-python -m unittest discover tests
+### 2. Configure Environment Variables
+Create a `.env` file in the project root:
+```env
+GEMINI_API_KEY="your-gemini-api-key-here"
+```
+*(Note: If `GEMINI_API_KEY` is not provided, the platform automatically utilizes its deterministic rule-based mapping engine without failing).*
+
+### 3. Run Automated Test Suite
+```bash
+python -m unittest discover -s tests -p "test_*.py"
 ```
 
-### 3. Launch the Interactive Web Platform
-```powershell
+### 4. Launch the Interactive Web Application
+```bash
 streamlit run app.py
 ```
 
-### 4. Optional: Run CLI Demonstration
-```powershell
+### 5. Run CLI Demonstration
+```bash
 python main.py --demo
 ```
 
 ---
 
-## 🧭 Application User Journey
+## 🧭 Step-by-Step User Workflow
 
 ```
-┌────────────────────────────────────────────────────────────────────────────┐
-│                       Nexus Stakeholder Workflow                           │
-├────────────────────────────────────────────────────────────────────────────┤
-│ 🚀 Project Overview         • Executive summary of MDM & Entity Resolution │
-│                             • "Start New Project" or "Load Demo Suite"     │
-│                                                                            │
-│ 📂 1. Upload Datasets       • Upload 2+ CSV / SQL files with any schema    │
-│                             • Live preview of row/column counts            │
-│                                                                            │
-│ 🧠 2. AI Schema Mapping     • Review semantic mapping suggestions          │
-│                             • Confidence scores, reasoning & user approval │
-│                             • Cross-dataset compatibility validation       │
-│                                                                            │
-│ ✨ 3. Master Dataset        • Summary KPIs: Total Input, Master Entities,  │
-│                             • Duplicates Resolved, Deduplication Rate      │
-│                             • 📥 Download Golden Master Dataset (CSV)      │
-│                                                                            │
-│ 🔍 4. Progressive Search    • Search by Email, Phone, Username, or ID      │
-│                             • Multi-hop discovery cards & network graph    │
-│                                                                            │
-│ 🔬 5. Explainability        • Attribute provenance & winning rules         │
-│                             • Contributing member record raw vs norm diff  │
-│                                                                            │
-│ 📊 Advanced: ML Benchmark   • Supervised Random Forest FEBRL evaluation    │
-│                             • Decision threshold slider, ROC-AUC, matrix   │
-└────────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           Nexus Platform Flow                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ 🚀 Step 1: Overview          • Executive MDM summary & architecture guide   │
+│                              • "Start Ingestion" or "Load Demo Suite"       │
+│                                                                             │
+│ 📂 Step 2: Ingest Datasets   • Upload 2+ CSV datasets with any schema       │
+│                              • View row/column counts and preview tables    │
+│                                                                             │
+│ 🧠 Step 3: AI Schema Review  • Review Gemini AI canonical proposals         │
+│                              • Confidence scores, reasoning & user dropdowns│
+│                                                                             │
+│ ⚡ Step 4: Run Resolution    • Inverted index matching & Union-Find cluster │
+│                              • 6-tier deterministic conflict resolution     │
+│                                                                             │
+│ ✨ Step 5: Master Results    • Summary KPIs & deduplication metrics         │
+│                              • 📥 DOWNLOAD MASTER DATASET (CSV)             │
+│                              • Decision explainability & source attribution │
+│                                                                             │
+│ 🔍 Step 6: Search & Lineage  • Search active repository by any identifier   │
+│                              • Multi-hop graph trail & field-level audit    │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🏛️ Architecture & Database Model (DuckDB)
+## 🏛️ Relational Database Schema (DuckDB)
 
 | Table | Purpose |
 | :--- | :--- |
-| `data_sources` | Metadata catalog of all uploaded files and databases |
+| `data_sources` | Metadata catalog of uploaded datasets and file formats |
 | `dataset_parts` | Multi-part and chunked file tracking |
-| `canonical_records` | Dual storage: unaltered raw JSON + cleaned normalized fields |
-| `identifier_index` | High-performance inverted index on Email, Phone, Username, IDs |
-| `enrichment_edges` | Audit trail of all graph merges for progressive replay |
-| `master_entities` | Final unified golden entities with completeness scores |
-| `entity_members` | Normalized junction table linking entities to source records |
-| `field_provenance` | Attribute-level lineage tracking winning rules and source origins |
-| `job_runs` | Persistent execution states and resumability checkpoints |
+| `canonical_records` | Dual storage: original raw row (`raw_fields_json`) + clean normalized fields (`norm_fields_json`) |
+| `identifier_index` | High-performance inverted index on Email, Phone, Aadhaar, Username, Member ID |
+| `enrichment_edges` | Audit trail of all graph merges and match confidence scores |
+| `master_entities` | Final unified golden entities with dynamic attributes (`raw_attributes_json`) and quality score |
+| `entity_members` | Normalized junction table linking golden entities to contributing source records |
+| `field_provenance` | Attribute-level lineage tracking winning values, source datasets, source columns, and resolution rules |
+
+---
+
+## ☁️ Deployment Instructions
+
+### Streamlit Community Cloud (Recommended)
+1. Push repository to GitHub.
+2. In [Streamlit Community Cloud](https://share.streamlit.io/), click **New App**.
+3. Select your repository, branch (`main`), and set **Main file path** to `app.py`.
+4. In **Advanced Settings $\rightarrow$ Secrets**, add your API key:
+   ```toml
+   GEMINI_API_KEY = "your-gemini-api-key-here"
+   ```
+5. Click **Deploy**.
+
+### Docker / Cloud Server (Render / Railway / VM)
+```dockerfile
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+EXPOSE 8501
+CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+```
+Set environment variable `GEMINI_API_KEY` in your cloud platform dashboard settings.

@@ -275,6 +275,11 @@ def get_unified_master_dataframe(
         parsed_golden_list.append(d)
         all_discovered_attributes.update(d.keys())
 
+    # If full name is synthesized/resolved, consolidate name fragments into the single golden 'name' attribute
+    if "name" in all_discovered_attributes:
+        all_discovered_attributes.discard("first_name")
+        all_discovered_attributes.discard("last_name")
+
     # Establish intuitive semantic column ordering
     priority_order = [
         "name", "username", "email", "phone", "aadhaar", "city", "address",

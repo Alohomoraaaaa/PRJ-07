@@ -713,10 +713,47 @@ elif st.session_state.current_step == 6:
                     </div>
                     """, unsafe_allow_html=True)
 
+                # Field Provenance & Contribution Section
+                st.markdown("<br>", unsafe_allow_html=True)
+                st.subheader("Field-Level Provenance & Source Attribution")
+                prov_df = query_db("""
+                    SELECT canonical_field, resolved_value, source_id, source_column, resolution_rule, conflict_details
+                    FROM field_provenance
+                    WHERE entity_id = ?
+                    ORDER BY canonical_field ASC
+                """, [ent['entity_id']])
+
+                if not prov_df.empty:
+                    col_p1, col_p2 = st.columns([1, 1])
+                    for p_idx, prow in prov_df.iterrows():
+                        rule_desc = "Unanimous agreement" if prow['resolution_rule'] in ("SINGLE_NON_NULL", "UNANIMOUS_CONSENSUS") else prow['resolution_rule'].replace("_", " ").title()
+                        target_col = col_p1 if (p_idx % 2 == 0) else col_p2
+                        conflict_note = f"<div style='color: #F59E0B; font-size: 0.78rem; margin-top: 2px;'>⚠️ {prow['conflict_details']}</div>" if prow.get('conflict_details') else ""
+                        with target_col:
+                            st.markdown(f"""
+                            <div class="card-panel" style="margin-bottom: 8px; border-left: 3px solid #3B82F6; padding: 10px 14px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="font-weight: 700; color: #F8FAFC;">{prow['canonical_field'].replace('_', ' ').title()}</span>
+                                    <span class="badge-tag" style="background: #1E293B; color: #60A5FA;">from {prow['source_id']}</span>
+                                </div>
+                                <div style="font-size: 1.05rem; color: #34D399; font-weight: 600; margin: 4px 0 2px 0;">
+                                    {prow['resolved_value']}
+                                </div>
+                                <div style="font-size: 0.8rem; color: #94A3B8;">
+                                    <b>Source Column:</b> <code>{prow['source_column']}</code> &nbsp;|&nbsp; 
+                                    <b>Rule:</b> <span style="color: #E2E8F0;">{rule_desc}</span>
+                                </div>
+                                {conflict_note}
+                            </div>
+                            """, unsafe_allow_html=True)
+                else:
+                    st.info("No field-level provenance recorded for this entity.")
+
+                st.markdown("<br>", unsafe_allow_html=True)
                 st.subheader(f"Progressive Traversal Trail ({len(replay['steps'])} Discovery Steps)")
                 for s in replay["steps"]:
                     st.markdown(f"""
-                    <div class="card-panel" style="border-left: 4px solid #3B82F6; margin-bottom: 10px;">
+                    <div class="card-panel" style="border-left: 4px solid #10B981; margin-bottom: 10px;">
                         <div style="display: flex; justify-content: space-between;">
                             <b>Step {s['step_number']}: {s['action']}</b>
                             <span class="badge-tag" style="background: #1E293B; color: #60A5FA;">{s['source_dataset']}</span>
