@@ -1,0 +1,6 @@
+member_id,email,username,skills,join_date
+MBR-9901,john.doe@techcorp.com,johndoe_dev,"Python, Distributed DBs, High Throughput Ingestion",2023-01-15
+MBR-8820,priya.sharma@innovate.org,priyasharma_ai,"PyTorch, Graph Neural Networks, LLM Evaluation",2023-03-22
+MBR-7734,marcus.vance@globalcorp.com,marcus_pm,"Product Strategy, Analytics, Roadmap Execution",2022-11-05
+MBR-6641,vikram.patel@logistics.in,vikram_p,"Supply Chain Automation, IoT Fleet Tracking",2023-08-19
+MBR-5510,chen.wei@quantum.org,chen_quantum,"Quantum Algorithms, Qiskit, Linear Algebra",2024-02-10
