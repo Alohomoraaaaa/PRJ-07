@@ -17,14 +17,24 @@ from src.mapping import SchemaMappingEngine
 
 
 def get_gemini_api_key() -> Optional[str]:
-    """Retrieve Gemini API Key from environment or .env file."""
-    # Check OS env first
+    """Retrieve Gemini API Key from Streamlit secrets, environment, or .env file."""
+    # 1. Check Streamlit secrets (Streamlit Cloud deployment)
+    try:
+        import streamlit as st
+        if hasattr(st, "secrets"):
+            for var in ["GEMINI_API_KEY", "GEMINIY_API_KEY", "GOOGLE_API_KEY"]:
+                if var in st.secrets and st.secrets[var]:
+                    return str(st.secrets[var]).strip().strip("'\"")
+    except Exception:
+        pass
+
+    # 2. Check OS environment variables
     for var in ["GEMINI_API_KEY", "GEMINIY_API_KEY", "GOOGLE_API_KEY"]:
         val = os.environ.get(var)
         if val and val.strip():
             return val.strip().strip("'\"")
 
-    # Check local .env file
+    # 3. Check local .env file
     env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
     if os.path.exists(env_path):
         try:
