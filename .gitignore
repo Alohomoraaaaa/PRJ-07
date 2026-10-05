@@ -28,6 +28,7 @@ Thumbs.db
 *.db
 *.sqlite
 *.duckdb
+*.duckdb.wal
 *.sqlite3
 data/processed/
 tmp/
