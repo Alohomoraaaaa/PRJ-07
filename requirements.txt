@@ -1,4 +1,4 @@
-# Multi-Database Entity Resolution & Unified Data Repository (PRJ-07)
+# Data Weave (PRJ-07)
 # Core Production Dependencies
 
 pandas>=2.0.0

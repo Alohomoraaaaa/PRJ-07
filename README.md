@@ -1,4 +1,4 @@
-# Multi-Database Entity Resolution & Golden Master Platform
+# Data Weave
 
 PRJ-07 is a domain-agnostic entity resolution and master data management platform. It turns heterogeneous CSV and SQL datasets into a trusted golden master: one row per resolved entity, consolidated attributes, and field-level lineage back to the source records.
 

@@ -30,8 +30,7 @@ from src.sql_importer import SQLDumpImporter
 # 1. PAGE SETUP & CORPORATE STYLING
 # ==============================================================================
 st.set_page_config(
-    page_title="Multi-Database Entity Resolution Platform",
-    page_icon="⚡",
+    page_title="Data Weave",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -77,8 +76,8 @@ st.markdown("""
     }
     
     .card-highlight {
-        background: linear-gradient(135deg, #131B2E 0%, #1E1B4B 100%);
-        border: 1px solid #3B82F6;
+        background: #131B2E;
+        border: 1px solid #334155;
         border-radius: 8px;
         padding: 20px 24px;
         margin-bottom: 16px;
@@ -166,15 +165,15 @@ def query_db(sql: str, params: list = None) -> pd.DataFrame:
 # ==============================================================================
 # 3. SIDEBAR NAVIGATION
 # ==============================================================================
-st.sidebar.markdown("### Workflow Navigation")
+st.sidebar.markdown("### Data Weave")
 
 nav_steps = [
     "1. Overview",
-    "2. Upload Datasets",
-    "3. AI Schema Mapping",
-    "4. Review & Process",
-    "5. Results & Master Repository",
-    "6. Search & Lineage Audit",
+    "2. Upload",
+    "3. Map Columns",
+    "4. Review",
+    "5. Results",
+    "6. Search",
 ]
 
 selected_nav = st.sidebar.radio(
@@ -188,8 +187,8 @@ if selected_step_num != st.session_state.current_step:
     st.rerun()
 
 st.sidebar.markdown("---")
-st.sidebar.caption("PRJ-07 • Multi-Database Entity Resolution")
-st.sidebar.caption("AI-Assisted Master Data Management")
+st.sidebar.caption("PRJ-07")
+st.sidebar.caption("Entity resolution")
 
 
 # ==============================================================================
@@ -197,17 +196,15 @@ st.sidebar.caption("AI-Assisted Master Data Management")
 # ==============================================================================
 if st.session_state.current_step == 1:
     st.markdown("""
-    <div style="background: linear-gradient(135deg, #131B2E 0%, #172554 100%); border: 1px solid #1E3A8A; border-radius: 10px; padding: 24px 28px; margin-bottom: 24px;">
+    <div style="background: #131B2E; border: 1px solid #334155; border-radius: 10px; padding: 24px 28px; margin-bottom: 24px;">
         <span class="badge-tag" style="background: #1D4ED8; color: #DBEAFE; border: none; font-size: 0.75rem; letter-spacing: 0.05em; text-transform: uppercase;">
-            Multi-Database Entity Resolution & Golden Record Platform
+            Data Weave
         </span>
         <h1 style="color: #FFFFFF; font-size: 2.1rem; font-weight: 800; margin: 10px 0 8px 0; letter-spacing: -0.02em;">
-            Turn Fragmented Databases into a Single Golden Master
+            Build a clean master dataset
         </h1>
         <p style="color: #94A3B8; font-size: 1.02rem; line-height: 1.6; max-width: 860px; margin: 0 0 16px 0;">
-            Upload disparate CSV or SQL datasets with messy headers. Gemini AI auto-maps equivalent attributes, 
-            disjoint graph clustering resolves duplicates across sources, and the engine synthesizes an authoritative 
-            master repository — with <b>100% attribute preservation</b> and <b>zero false collapse</b>.
+            Upload your files, map columns, resolve duplicates, and review one trusted result.
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -215,31 +212,28 @@ if st.session_state.current_step == 1:
     c1, c2, c3 = st.columns(3)
     with c1:
         st.markdown("""
-        <div class="card-panel" style="min-height: 150px;">
-            <div style="font-size: 1.5rem; margin-bottom: 6px;">📂</div>
-            <h4 style="color: #60A5FA; margin: 0 0 6px 0;">1. Universal Ingest & Map</h4>
+        <div class="card-panel" style="min-height: 130px;">
+            <h4 style="color: #60A5FA; margin: 0 0 6px 0;">1. Upload and map</h4>
             <p style="color: #94A3B8; font-size: 0.88rem; line-height: 1.5; margin: 0;">
-                Accepts arbitrary CSVs and SQL dumps. Gemini AI detects matching concepts without guessing, keeping custom fields intact.
+                Add CSV or SQL files and review the suggested column matches.
             </p>
         </div>
         """, unsafe_allow_html=True)
     with c2:
         st.markdown("""
-        <div class="card-panel" style="min-height: 150px;">
-            <div style="font-size: 1.5rem; margin-bottom: 6px;">🔗</div>
-            <h4 style="color: #818CF8; margin: 0 0 6px 0;">2. Strict Entity Clustering</h4>
+        <div class="card-panel" style="min-height: 130px;">
+            <h4 style="color: #818CF8; margin: 0 0 6px 0;">2. Match records</h4>
             <p style="color: #94A3B8; font-size: 0.88rem; line-height: 1.5; margin: 0;">
-                Inverted indexing & Union-Find link verified identities across databases while strictly isolating blank/null values.
+                Link matching records while keeping separate entities separate.
             </p>
         </div>
         """, unsafe_allow_html=True)
     with c3:
         st.markdown("""
-        <div class="card-panel" style="min-height: 150px;">
-            <div style="font-size: 1.5rem; margin-bottom: 6px;">✨</div>
-            <h4 style="color: #34D399; margin: 0 0 6px 0;">3. Golden Master Export</h4>
+        <div class="card-panel" style="min-height: 130px;">
+            <h4 style="color: #34D399; margin: 0 0 6px 0;">3. Review results</h4>
             <p style="color: #94A3B8; font-size: 0.88rem; line-height: 1.5; margin: 0;">
-                One row per resolved entity and one column per consolidated attribute. Full field lineage and downloadable CSV.
+                Inspect the master table, source history, and final CSV.
             </p>
         </div>
         """, unsafe_allow_html=True)
@@ -247,11 +241,11 @@ if st.session_state.current_step == 1:
     st.markdown("<br>", unsafe_allow_html=True)
     b_col1, b_col2 = st.columns([1.6, 4])
     with b_col1:
-        if st.button("🚀 Upload Datasets →", type="primary", use_container_width=True):
+        if st.button("Upload datasets", type="primary", use_container_width=True):
             st.session_state.current_step = 2
             st.rerun()
     with b_col2:
-        if st.button("⚡ 1-Click Interactive Demo (Instant Load)", use_container_width=False):
+        if st.button("Load demo data", use_container_width=False):
             demo_files = generate_demonstration_suite()
             st.session_state.uploaded_datasets = {
                 "customer_a.csv": {"df": pd.read_csv(demo_files["customer_a"]), "mapping": {}},
@@ -267,18 +261,18 @@ if st.session_state.current_step == 1:
 elif st.session_state.current_step == 2:
     col_t1, col_t2 = st.columns([4, 1.2])
     with col_t1:
-        st.markdown('<div class="page-title">Step 2: Upload Datasets</div>', unsafe_allow_html=True)
-        st.markdown('<div class="page-subtitle">Upload multiple CSV files or SQL database dumps to integrate.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="page-title">Step 2: Upload</div>', unsafe_allow_html=True)
+        st.markdown('<div class="page-subtitle">Add CSV or SQL files to begin.</div>', unsafe_allow_html=True)
     with col_t2:
-        if st.button("Proceed to AI Mapping →", type="primary", use_container_width=True):
+        if st.button("Next: map columns", type="primary", use_container_width=True):
             if not st.session_state.uploaded_datasets:
-                st.error("Please upload or load at least one dataset.")
+                st.error("Add at least one file.")
             else:
                 st.session_state.current_step = 3
                 st.rerun()
 
     uploaded_files = st.file_uploader(
-        "Upload Datasets (CSV or SQL)",
+        "Choose CSV or SQL files",
         type=["csv", "sql"],
         accept_multiple_files=True,
     )
@@ -300,8 +294,8 @@ elif st.session_state.current_step == 2:
                         os.remove(temp_sql)
 
     if not st.session_state.uploaded_datasets:
-        st.info("No datasets loaded yet. Upload files above or load the demo datasets:")
-        if st.button("Load Demo Datasets (customer_a.csv & customer_b.csv)"):
+        st.info("No files loaded yet.")
+        if st.button("Load demo files"):
             demo_files = generate_demonstration_suite()
             st.session_state.uploaded_datasets = {
                 "customer_a.csv": {"df": pd.read_csv(demo_files["customer_a"]), "mapping": {}},
@@ -309,10 +303,10 @@ elif st.session_state.current_step == 2:
             }
             st.rerun()
     else:
-        st.markdown("### Loaded Datasets Preview")
+        st.markdown("### Loaded files")
         for fname, dinfo in list(st.session_state.uploaded_datasets.items()):
             df_cur = dinfo["df"]
-            with st.expander(f"📄 **{fname}** — {len(df_cur):,} rows • {len(df_cur.columns)} columns", expanded=True):
+            with st.expander(f"**{fname}** - {len(df_cur):,} rows, {len(df_cur.columns)} columns", expanded=True):
                 c_head, c_del = st.columns([5, 1])
                 with c_head:
                     st.dataframe(df_cur.head(3), use_container_width=True)
@@ -324,13 +318,13 @@ elif st.session_state.current_step == 2:
     st.markdown("---")
     b1, b2 = st.columns([1, 4])
     with b1:
-        if st.button("← Back to Overview"):
+        if st.button("Back"):
             st.session_state.current_step = 1
             st.rerun()
     with b2:
-        if st.button("Proceed to AI Mapping →", type="primary", key="btn_next_step2"):
+        if st.button("Next: map columns", type="primary", key="btn_next_step2"):
             if not st.session_state.uploaded_datasets:
-                st.error("Please upload or load at least one dataset.")
+                st.error("Add at least one file.")
             else:
                 st.session_state.current_step = 3
                 st.rerun()
@@ -342,16 +336,16 @@ elif st.session_state.current_step == 2:
 elif st.session_state.current_step == 3:
     col_t1, col_t2 = st.columns([4, 1.2])
     with col_t1:
-        st.markdown('<div class="page-title">Step 3: AI Schema Mapping</div>', unsafe_allow_html=True)
-        st.markdown('<div class="page-subtitle">Gemini 2.5 Flash-Lite analyzes column headers and sample values to propose canonical mappings. Review and edit as needed.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="page-title">Step 3: Map columns</div>', unsafe_allow_html=True)
+        st.markdown('<div class="page-subtitle">Review the suggested match for each column.</div>', unsafe_allow_html=True)
     with col_t2:
-        if st.button("Review & Process →", type="primary", use_container_width=True):
+        if st.button("Next: review", type="primary", use_container_width=True):
             st.session_state.current_step = 4
             st.rerun()
 
     if not st.session_state.uploaded_datasets:
-        st.warning("No datasets uploaded. Please return to Step 2.")
-        if st.button("← Go to Upload"):
+        st.warning("No files uploaded.")
+        if st.button("Back to upload"):
             st.session_state.current_step = 2
             st.rerun()
         st.stop()
@@ -364,7 +358,7 @@ elif st.session_state.current_step == 3:
 
         # Run AI mapping ONCE per schema and cache
         if schema_key not in st.session_state.schema_cache:
-            with st.spinner(f"Analyzing schema for {fname} with Gemini AI..."):
+            with st.spinner(f"Analyzing columns in {fname}..."):
                 proposals = ai_mapper.suggest_mappings(df_cur, dataset_name=fname)
                 st.session_state.schema_cache[schema_key] = proposals
                 dinfo["mapping"] = {c: p["suggested_canonical"] for c, p in proposals.items()}
@@ -380,21 +374,21 @@ elif st.session_state.current_step == 3:
         ambiguous_cols = [c for c in df_cur.columns if proposals.get(c, {}).get("is_ambiguous", False)]
         unmapped_cols = [c for c in df_cur.columns if dinfo["mapping"].get(c, "unmapped") == "unmapped"]
 
-        st.markdown(f"#### 📄 **{fname}** ({len(df_cur):,} rows • {total_cols} columns)")
+        st.markdown(f"#### **{fname}** ({len(df_cur):,} rows, {total_cols} columns)")
 
         # Summary KPIs for Wide Datasets
         c_k1, c_k2, c_k3, c_k4 = st.columns(4)
         c_k1.metric("Total Columns", total_cols)
         c_k2.metric("Mapped Concepts", len(mapped_cols))
-        c_k3.metric("Preserved Passthrough", len(unmapped_cols))
-        c_k4.metric("Flagged Ambiguous", len(ambiguous_cols))
+        c_k3.metric("Unmapped", len(unmapped_cols))
+        c_k4.metric("Needs review", len(ambiguous_cols))
 
         # Alert banner for ambiguous / colliding column names
         if ambiguous_cols:
             st.warning(
-                f"⚠️ **Review Recommended ({len(ambiguous_cols)} columns)**: "
-                f"Near-duplicate candidate names detected ({', '.join(ambiguous_cols[:5])}{'...' if len(ambiguous_cols) > 5 else ''}). "
-                "To prevent guessing or data corruption, these are kept as unmapped passthrough. You can assign them below if desired."
+                f"**Review needed: {len(ambiguous_cols)} columns.** "
+                f"Similar names were found: {', '.join(ambiguous_cols[:5])}{'...' if len(ambiguous_cols) > 5 else ''}. "
+                "These remain unmapped until you choose a target."
             )
 
         # Filtering / Search for Wide Datasets (>20 columns)
@@ -403,18 +397,18 @@ elif st.session_state.current_step == 3:
             c_f1, c_f2 = st.columns([2, 3])
             with c_f1:
                 filter_choice = st.selectbox(
-                    f"Filter Columns View ({fname})",
-                    ["All Columns", "Ambiguous / Review Needed", "Mapped Only", "Unmapped Passthrough"],
+                    f"Filter columns ({fname})",
+                    ["All", "Needs review", "Mapped", "Unmapped"],
                     key=f"flt_{fname}",
                 )
             with c_f2:
-                search_sub = st.text_input(f"Search Column Name ({fname})", placeholder="Type to filter column...", key=f"search_{fname}")
+                search_sub = st.text_input(f"Search columns ({fname})", placeholder="Filter by name...", key=f"search_{fname}")
 
-            if filter_choice == "Ambiguous / Review Needed":
+            if filter_choice == "Needs review":
                 active_cols = ambiguous_cols if ambiguous_cols else []
-            elif filter_choice == "Mapped Only":
+            elif filter_choice == "Mapped":
                 active_cols = mapped_cols
-            elif filter_choice == "Unmapped Passthrough":
+            elif filter_choice == "Unmapped":
                 active_cols = unmapped_cols
 
             if search_sub.strip():
@@ -453,11 +447,11 @@ elif st.session_state.current_step == 3:
 
     b1, b2 = st.columns([1, 4])
     with b1:
-        if st.button("← Back to Upload"):
+        if st.button("Back"):
             st.session_state.current_step = 2
             st.rerun()
     with b2:
-        if st.button("Review & Process →", type="primary", key="btn_next_step3"):
+        if st.button("Next: review", type="primary", key="btn_next_step3"):
             st.session_state.current_step = 4
             st.rerun()
 
@@ -467,11 +461,11 @@ elif st.session_state.current_step == 3:
 # ==============================================================================
 elif st.session_state.current_step == 4:
     st.markdown('<div class="page-title">Step 4: Review & Process</div>', unsafe_allow_html=True)
-    st.markdown('<div class="page-subtitle">Confirm schema mappings and execute entity resolution to synthesize the Master Dataset.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="page-subtitle">Confirm your mappings and build the master dataset.</div>', unsafe_allow_html=True)
 
     if not st.session_state.uploaded_datasets:
-        st.warning("No datasets uploaded. Return to Step 2.")
-        if st.button("← Go to Upload"):
+        st.warning("No files uploaded.")
+        if st.button("Back to upload"):
             st.session_state.current_step = 2
             st.rerun()
         st.stop()
@@ -496,8 +490,8 @@ elif st.session_state.current_step == 4:
     st.markdown("<br>", unsafe_allow_html=True)
 
     # Big Process Button
-    if st.button("🚀 Run Entity Resolution & Build Master Dataset", type="primary", use_container_width=True):
-        with st.spinner("Processing records through entity resolution engine..."):
+    if st.button("Build master dataset", type="primary", use_container_width=True):
+        with st.spinner("Building master dataset..."):
             specs = []
             for src_idx, (fname, dinfo) in enumerate(st.session_state.uploaded_datasets.items(), start=1):
                 clean_id = f"src_{src_idx}_{fname.replace(' ', '_').replace('.', '_')}"
@@ -515,7 +509,7 @@ elif st.session_state.current_step == 4:
             st.rerun()
 
     st.markdown("---")
-    if st.button("← Back to AI Mapping"):
+    if st.button("Back to mapping"):
         st.session_state.current_step = 3
         st.rerun()
 
@@ -526,13 +520,13 @@ elif st.session_state.current_step == 4:
 elif st.session_state.current_step == 5:
     col_t1, col_t2 = st.columns([3.5, 1.5])
     with col_t1:
-        st.markdown('<div class="page-title">Step 5: Results & Master Dataset</div>', unsafe_allow_html=True)
-        st.markdown('<div class="page-subtitle">Unified Master Dataset synthesized across all sources with complete field preservation and zero false collapse.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="page-title">Step 5: Results</div>', unsafe_allow_html=True)
+        st.markdown('<div class="page-subtitle">Review resolved entities and export the master dataset.</div>', unsafe_allow_html=True)
 
     stats = db.get_system_statistics()
     if stats["total_records"] == 0:
         st.info("No records in master repository. Please execute Step 4.")
-        if st.button("← Go to Step 4"):
+        if st.button("Back to review"):
             st.session_state.current_step = 4
             st.rerun()
         st.stop()
@@ -592,9 +586,10 @@ elif st.session_state.current_step == 5:
     df_master = get_unified_master_dataframe(db)
 
     # Prominent Download CSV Button
-    csv_data = df_master.to_csv(index=False).encode("utf-8")
+    csv_export = df_master.drop(columns=["cluster_size", "sources"], errors="ignore")
+    csv_data = csv_export.to_csv(index=False).encode("utf-8")
     st.download_button(
-        label="📥 DOWNLOAD MASTER DATASET (CSV)",
+        label="Download CSV",
         data=csv_data,
         file_name="unified_master_dataset.csv",
         mime="text/csv",
@@ -603,12 +598,12 @@ elif st.session_state.current_step == 5:
     )
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("### Master Entity Repository")
+    st.markdown("### Master table")
     st.dataframe(df_master, use_container_width=True, hide_index=True)
 
     # Explainability Section
     st.markdown("---")
-    st.markdown("### Decision Explainability & Lineage")
+    st.markdown("### Lineage")
 
     if not df_master.empty:
         def format_entity_label(eid: str) -> str:
@@ -621,7 +616,7 @@ elif st.session_state.current_step == 5:
             return f"{eid} — {name} ({size} Sources)"
 
         selected_ent_id = st.selectbox(
-            "Select an Entity to Inspect Merge Rationale:",
+            "Select an entity:",
             options=df_master["entity_id"].tolist(),
             format_func=format_entity_label,
         )
@@ -629,7 +624,7 @@ elif st.session_state.current_step == 5:
         if selected_ent_id:
             col_e1, col_e2 = st.columns(2)
             with col_e1:
-                st.markdown("##### Why Were These Records Merged?")
+                st.markdown("##### Match details")
                 edges_for_ent = query_db("""
                     SELECT identifier_type, identifier_value, source_id_a, source_id_b, match_confidence
                     FROM enrichment_edges
@@ -638,19 +633,19 @@ elif st.session_state.current_step == 5:
                 """, [selected_ent_id, selected_ent_id])
 
                 if edges_for_ent.empty:
-                    st.markdown("<p style='color: #94A3B8;'>• Unique record with no matching identifiers in other datasets. Preserved as an independent master entity with zero data loss.</p>", unsafe_allow_html=True)
+                    st.markdown("<p style='color: #94A3B8;'>No matching record found. This entity remains separate.</p>", unsafe_allow_html=True)
                 else:
                     for _, erow in edges_for_ent.drop_duplicates(subset=['identifier_type', 'identifier_value']).iterrows():
                         conf_str = f"{erow['match_confidence'] * 100:.0f}%"
                         st.markdown(f"""
                         <div style="margin-bottom: 8px; background: #131B2E; padding: 10px 14px; border-radius: 6px; border-left: 3px solid #10B981;">
-                            <span style="color: #34D399; font-weight: 700;">✓ Merged on {erow['identifier_type'].upper()}:</span> <code>{erow['identifier_value']}</code><br>
+                            <span style="color: #34D399; font-weight: 700;">Matched on {erow['identifier_type'].upper()}:</span> <code>{erow['identifier_value']}</code><br>
                             <span style="color: #94A3B8; font-size: 0.82rem;">Linked records across <b>{erow['source_id_a']}</b> and <b>{erow['source_id_b']}</b> ({conf_str} confidence)</span>
                         </div>
                         """, unsafe_allow_html=True)
 
             with col_e2:
-                st.markdown("##### Selected Attribute Lineage")
+                st.markdown("##### Field lineage")
                 prov_df = query_db("SELECT canonical_field, resolved_value, source_id, resolution_rule FROM field_provenance WHERE entity_id = ?", [selected_ent_id])
                 for _, prow in prov_df.iterrows():
                     rule_desc = "Unanimous agreement" if prow['resolution_rule'] in ("SINGLE_NON_NULL", "UNANIMOUS_CONSENSUS") else prow['resolution_rule'].replace("_", " ").title()
@@ -669,7 +664,7 @@ elif st.session_state.current_step == 5:
             st.session_state.master_results = None
             st.rerun()
     with b2:
-        if st.button("Search Entities & Recursive Enrichment →", type="primary"):
+        if st.button("Search entities", type="primary"):
             st.session_state.current_step = 6
             st.rerun()
 
@@ -678,8 +673,8 @@ elif st.session_state.current_step == 5:
 # STEP 6: SEARCH & LINEAGE AUDIT
 # ==============================================================================
 elif st.session_state.current_step == 6:
-    st.markdown('<div class="page-title">Step 6: Search & Recursive Entity Enrichment</div>', unsafe_allow_html=True)
-    st.markdown('<div class="page-subtitle">Search by any single identifier (Email, Phone, Username, or Aadhaar) to trace recursive multi-hop linkages across disparate databases.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="page-title">Step 6: Search</div>', unsafe_allow_html=True)
+    st.markdown('<div class="page-subtitle">Find an entity by email, phone, username, or another field.</div>', unsafe_allow_html=True)
 
     recs_df = query_db("SELECT * FROM canonical_records")
     edges_df = query_db("SELECT * FROM enrichment_edges")
@@ -848,19 +843,19 @@ elif st.session_state.current_step == 6:
                     for p_idx, prow in prov_df.iterrows():
                         rule_desc = "Unanimous agreement" if prow['resolution_rule'] in ("SINGLE_NON_NULL", "UNANIMOUS_CONSENSUS") else prow['resolution_rule'].replace("_", " ").title()
                         target_col = col_p1 if (p_idx % 2 == 0) else col_p2
-                        conflict_note = f"<div style='color: #F59E0B; font-size: 0.78rem; margin-top: 2px;'>⚠️ {prow['conflict_details']}</div>" if prow.get('conflict_details') else ""
+                        conflict_note = f"<div style='color: #F59E0B; font-size: 0.78rem; margin-top: 2px;'>{prow['conflict_details']}</div>" if prow.get('conflict_details') else ""
                         with target_col:
                             st.markdown(f"""
                             <div class="card-panel" style="margin-bottom: 8px; border-left: 3px solid #3B82F6; padding: 10px 14px;">
                                 <div style="display: flex; justify-content: space-between; align-items: center;">
                                     <span style="font-weight: 700; color: #F8FAFC;">{prow['canonical_field'].replace('_', ' ').title()}</span>
-                                    <span class="badge-tag" style="background: #1E293B; color: #60A5FA;">from {prow['source_id']}</span>
+                                    <span class="badge-tag" style="background: #1E293B; color: #60A5FA;">{prow['source_id']}</span>
                                 </div>
                                 <div style="font-size: 1.05rem; color: #34D399; font-weight: 600; margin: 4px 0 2px 0;">
                                     {prow['resolved_value']}
                                 </div>
                                 <div style="font-size: 0.8rem; color: #94A3B8;">
-                                    <b>Source Column:</b> <code>{prow['source_column']}</code> &nbsp;|&nbsp; 
+                                    <b>Column:</b> <code>{prow['source_column']}</code> &nbsp;|&nbsp; 
                                     <b>Rule:</b> <span style="color: #E2E8F0;">{rule_desc}</span>
                                 </div>
                                 {conflict_note}
@@ -870,7 +865,7 @@ elif st.session_state.current_step == 6:
                     st.info("No field-level provenance recorded for this entity.")
 
                 st.markdown("<br>", unsafe_allow_html=True)
-                st.subheader(f"Progressive Traversal Trail ({len(replay['steps'])} Discovery Steps)")
+                st.subheader(f"Match trail ({len(replay['steps'])} steps)")
                 for s in replay["steps"]:
                     st.markdown(f"""
                     <div class="card-panel" style="border-left: 4px solid #10B981; margin-bottom: 10px;">
@@ -882,7 +877,7 @@ elif st.session_state.current_step == 6:
                     </div>
                     """, unsafe_allow_html=True)
 
-                with st.expander("Contributing Source Rows (Payloads)"):
+                with st.expander("Source rows"):
                     matched_records = query_db("""
                         SELECT cr.source_id, cr.source_record_id, cr.norm_fields_json, cr.raw_fields_json
                         FROM canonical_records cr
@@ -891,6 +886,6 @@ elif st.session_state.current_step == 6:
                     st.dataframe(matched_records, use_container_width=True, hide_index=True)
 
     st.markdown("---")
-    if st.button("← Back to Results & Master Dataset"):
+    if st.button("Back to results"):
         st.session_state.current_step = 5
         st.rerun()

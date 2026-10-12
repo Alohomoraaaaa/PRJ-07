@@ -1,5 +1,5 @@
 """
-Main Entry Point for PRJ-07: Multi-Database Entity Resolution Platform.
+Main Entry Point for PRJ-07: Data Weave.
 Executes multi-database ingestion, schema mapping, normalization, inverted indexing,
 Union-Find clustering, enrichment edge logging, and master repository synthesis.
 """
@@ -11,13 +11,13 @@ from src.database import get_db_manager
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Multi-Database Entity Resolution & Unified Data Repository")
+    parser = argparse.ArgumentParser(description="Data Weave")
     parser.add_argument("--demo", action="store_true", help="Run full demonstration suite across Datasets A, B, C, D")
     parser.add_argument("--stats", action="store_true", help="Print current repository statistics")
     args = parser.parse_args()
 
     print("=" * 80)
-    print("MULTI-DATABASE ENTITY RESOLUTION & UNIFIED DATA REPOSITORY (PRJ-07)")
+    print("DATA WEAVE (PRJ-07)")
     print("=" * 80)
 
     stats = run_full_demonstration_pipeline(include_incremental_d=True)
