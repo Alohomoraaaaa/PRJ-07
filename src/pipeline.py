@@ -130,9 +130,13 @@ def run_dynamic_user_pipeline(
             src_rec_id = str(
                 raw_dict.get("id") or
                 raw_dict.get("record_id") or
+                raw_dict.get("user_id") or
+                raw_dict.get("uid") or
                 raw_dict.get("cust_id") or
                 raw_dict.get("employee_id") or
                 raw_dict.get("member_id") or
+                raw_dict.get("sku") or
+                raw_dict.get("sku_code") or
                 f"ROW_{row_idx+1}"
             )
 
@@ -152,11 +156,12 @@ def run_dynamic_user_pipeline(
                 "name_norm": norm_fields.get("name", ""),
                 "company_norm": norm_fields.get("company", ""),
                 "address_norm": norm_fields.get("address", ""),
+                "mapped_cols_json": json.dumps(mapping),
                 "is_unmatched": True,
             })
 
             # Inverted index entries for all populated identifiers (skips blank/null values)
-            for ident_col in ["email", "phone", "username", "member_id"]:
+            for ident_col in ["email", "phone", "aadhaar", "username", "uid", "member_id", "sku", "barcode"]:
                 val = norm_fields.get(ident_col)
                 if not is_blank_or_null(val):
                     all_index_entries.append({

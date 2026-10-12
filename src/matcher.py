@@ -79,6 +79,10 @@ class HierarchicalMatcher:
                     for f in canon_fields
                 )
                 if all_valid:
+                    if "address" in canon_fields:
+                        addr = str(norm_fields.get("address") or "").strip()
+                        if len(addr) < 20 or not re.search(r"\d", addr):
+                            continue
                     comp_val = "|".join([str(norm_fields[f]).strip().lower() for f in canon_fields])
                     key = (ident_type, comp_val)
                     if key not in self.inverted_index:
@@ -124,6 +128,13 @@ class HierarchicalMatcher:
                     for f in canon_fields
                 )
                 if not all_valid:
+                    continue
+                # Do not merge on name + city-like location (too weak; similar names would collapse)
+                if "address" in canon_fields:
+                    addr = str(norm_fields.get("address") or "").strip()
+                    if len(addr) < 20 or not re.search(r"\d", addr):
+                        continue
+                if "name" in canon_fields and "address" not in canon_fields:
                     continue
                 comp_val = "|".join([str(norm_fields[f]).strip().lower() for f in canon_fields])
                 comp_conf = rule.get("confidence_threshold", 0.90)
@@ -221,6 +232,11 @@ class HierarchicalMatcher:
                 "linked_records": [],
             }
 
+        # Populate UnionFind graph from edges if not already initialized
+        if edges_df is not None and not edges_df.empty:
+            for _, ed in edges_df.iterrows():
+                self.uf.union(str(ed["record_uuid_a"]), str(ed["record_uuid_b"]))
+
         first_rec = matching_recs_list[0]
         first_rec_uuid = first_rec["record_uuid"]
         root_entity_id = self.uf.find(first_rec_uuid)
@@ -229,7 +245,7 @@ class HierarchicalMatcher:
 
         # Filter relevant edges in chronological order
         relevant_edges = []
-        if not edges_df.empty:
+        if edges_df is not None and not edges_df.empty:
             filtered = edges_df[
                 edges_df["record_uuid_a"].isin(all_cluster_uuids) |
                 edges_df["record_uuid_b"].isin(all_cluster_uuids)
@@ -263,22 +279,23 @@ class HierarchicalMatcher:
         # Step 1..N: Replay edges
         step_idx = 2
         for edge in relevant_edges:
-            edge_type = edge["identifier_type"]
-            edge_val = edge["identifier_value"]
-            src_a = edge["source_id_a"]
-            src_b = edge["source_id_b"]
+            edge_type = edge.get("identifier_type", "identifier")
+            edge_val = edge.get("identifier_value", edge.get("shared_value", ""))
+            src_a = edge.get("source_id_a", edge.get("source_a", ""))
+            src_b = edge.get("source_id_b", edge.get("source_b", ""))
 
             target_src = src_b if src_a in discovered_sources else src_a
             target_uuid = edge["record_uuid_b"] if src_a in discovered_sources else edge["record_uuid_a"]
             discovered_sources.add(src_a)
             discovered_sources.add(src_b)
 
+            conf_val = float(edge.get("match_confidence", edge.get("confidence", 1.0)))
             steps.append({
                 "step_number": step_idx,
                 "action": f"Multi-Hop Graph Traversal via [{edge_type.upper()}: {edge_val}]",
                 "source_dataset": target_src,
                 "record_uuid": target_uuid,
-                "details": f"Discovered connection from {src_a} to {src_b} sharing {edge_type} '{edge_val}' (Confidence: {edge['match_confidence'] * 100:.0f}%)",
+                "details": f"Discovered connection from {src_a} to {src_b} sharing {edge_type} '{edge_val}' (Confidence: {conf_val * 100:.0f}%)",
                 "edge": edge,
             })
             step_idx += 1

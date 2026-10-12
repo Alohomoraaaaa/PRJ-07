@@ -196,52 +196,68 @@ st.sidebar.caption("AI-Assisted Master Data Management")
 # STEP 1: OVERVIEW
 # ==============================================================================
 if st.session_state.current_step == 1:
-    st.markdown('<div class="page-title">Multi-Database Entity Resolution & Unified Repository</div>', unsafe_allow_html=True)
-    st.markdown('<div class="page-subtitle">Integrate disparate databases, intelligently map column schemas with Gemini AI, match records across sources, and synthesize a clean Master Dataset.</div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #131B2E 0%, #172554 100%); border: 1px solid #1E3A8A; border-radius: 10px; padding: 24px 28px; margin-bottom: 24px;">
+        <span class="badge-tag" style="background: #1D4ED8; color: #DBEAFE; border: none; font-size: 0.75rem; letter-spacing: 0.05em; text-transform: uppercase;">
+            Multi-Database Entity Resolution & Golden Record Platform
+        </span>
+        <h1 style="color: #FFFFFF; font-size: 2.1rem; font-weight: 800; margin: 10px 0 8px 0; letter-spacing: -0.02em;">
+            Turn Fragmented Databases into a Single Golden Master
+        </h1>
+        <p style="color: #94A3B8; font-size: 1.02rem; line-height: 1.6; max-width: 860px; margin: 0 0 16px 0;">
+            Upload disparate CSV or SQL datasets with messy headers. Gemini AI auto-maps equivalent attributes, 
+            disjoint graph clustering resolves duplicates across sources, and the engine synthesizes an authoritative 
+            master repository — with <b>100% attribute preservation</b> and <b>zero false collapse</b>.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
 
     c1, c2, c3 = st.columns(3)
     with c1:
         st.markdown("""
-        <div class="card-panel">
-            <h4 style="color: #60A5FA; margin-top: 0;">1. Ingest & AI Map</h4>
-            <p style="color: #94A3B8; font-size: 0.9rem; line-height: 1.5;">
-                Upload multiple CSVs or SQL dumps with arbitrary schemas. Gemini 2.5 Flash-Lite automatically maps raw headers to canonical concepts.
+        <div class="card-panel" style="min-height: 150px;">
+            <div style="font-size: 1.5rem; margin-bottom: 6px;">📂</div>
+            <h4 style="color: #60A5FA; margin: 0 0 6px 0;">1. Universal Ingest & Map</h4>
+            <p style="color: #94A3B8; font-size: 0.88rem; line-height: 1.5; margin: 0;">
+                Accepts arbitrary CSVs and SQL dumps. Gemini AI detects matching concepts without guessing, keeping custom fields intact.
             </p>
         </div>
         """, unsafe_allow_html=True)
     with c2:
         st.markdown("""
-        <div class="card-panel">
-            <h4 style="color: #818CF8; margin-top: 0;">2. Match & Disjoint Cluster</h4>
-            <p style="color: #94A3B8; font-size: 0.9rem; line-height: 1.5;">
-                Hierarchical inverted indexing and Union-Find graph clustering link verified identities (Email, Phone, Aadhaar, Username) without false collapse.
+        <div class="card-panel" style="min-height: 150px;">
+            <div style="font-size: 1.5rem; margin-bottom: 6px;">🔗</div>
+            <h4 style="color: #818CF8; margin: 0 0 6px 0;">2. Strict Entity Clustering</h4>
+            <p style="color: #94A3B8; font-size: 0.88rem; line-height: 1.5; margin: 0;">
+                Inverted indexing & Union-Find link verified identities across databases while strictly isolating blank/null values.
             </p>
         </div>
         """, unsafe_allow_html=True)
     with c3:
         st.markdown("""
-        <div class="card-panel">
-            <h4 style="color: #34D399; margin-top: 0;">3. Master Dataset & Lineage</h4>
-            <p style="color: #94A3B8; font-size: 0.9rem; line-height: 1.5;">
-                Synthesizes a golden master repository preserving all source attributes, field provenance, and enables recursive progressive enrichment.
+        <div class="card-panel" style="min-height: 150px;">
+            <div style="font-size: 1.5rem; margin-bottom: 6px;">✨</div>
+            <h4 style="color: #34D399; margin: 0 0 6px 0;">3. Golden Master Export</h4>
+            <p style="color: #94A3B8; font-size: 0.88rem; line-height: 1.5; margin: 0;">
+                One row per resolved entity and one column per consolidated attribute. Full field lineage and downloadable CSV.
             </p>
         </div>
         """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    b_col1, b_col2 = st.columns([1.5, 4])
+    b_col1, b_col2 = st.columns([1.6, 4])
     with b_col1:
-        if st.button("Start Integration →", type="primary", use_container_width=True):
+        if st.button("🚀 Upload Datasets →", type="primary", use_container_width=True):
             st.session_state.current_step = 2
             st.rerun()
     with b_col2:
-        if st.button("⚡ Quick Demo (Load Customer Datasets)", use_container_width=False):
+        if st.button("⚡ 1-Click Interactive Demo (Instant Load)", use_container_width=False):
             demo_files = generate_demonstration_suite()
             st.session_state.uploaded_datasets = {
                 "customer_a.csv": {"df": pd.read_csv(demo_files["customer_a"]), "mapping": {}},
                 "customer_b.csv": {"df": pd.read_csv(demo_files["customer_b"]), "mapping": {}},
             }
-            st.session_state.current_step = 2
+            st.session_state.current_step = 3
             st.rerun()
 
 
@@ -359,11 +375,55 @@ elif st.session_state.current_step == 3:
                 dinfo["mapping"] = {c: p["suggested_canonical"] for c, p in proposals.items()}
             dinfo["proposals"] = proposals
 
-        st.markdown(f"#### 📄 **{fname}** ({len(df_cur):,} rows)")
+        total_cols = len(df_cur.columns)
+        mapped_cols = [c for c in df_cur.columns if dinfo["mapping"].get(c, "unmapped") != "unmapped"]
+        ambiguous_cols = [c for c in df_cur.columns if proposals.get(c, {}).get("is_ambiguous", False)]
+        unmapped_cols = [c for c in df_cur.columns if dinfo["mapping"].get(c, "unmapped") == "unmapped"]
+
+        st.markdown(f"#### 📄 **{fname}** ({len(df_cur):,} rows • {total_cols} columns)")
+
+        # Summary KPIs for Wide Datasets
+        c_k1, c_k2, c_k3, c_k4 = st.columns(4)
+        c_k1.metric("Total Columns", total_cols)
+        c_k2.metric("Mapped Concepts", len(mapped_cols))
+        c_k3.metric("Preserved Passthrough", len(unmapped_cols))
+        c_k4.metric("Flagged Ambiguous", len(ambiguous_cols))
+
+        # Alert banner for ambiguous / colliding column names
+        if ambiguous_cols:
+            st.warning(
+                f"⚠️ **Review Recommended ({len(ambiguous_cols)} columns)**: "
+                f"Near-duplicate candidate names detected ({', '.join(ambiguous_cols[:5])}{'...' if len(ambiguous_cols) > 5 else ''}). "
+                "To prevent guessing or data corruption, these are kept as unmapped passthrough. You can assign them below if desired."
+            )
+
+        # Filtering / Search for Wide Datasets (>20 columns)
+        active_cols = df_cur.columns.tolist()
+        if total_cols > 20:
+            c_f1, c_f2 = st.columns([2, 3])
+            with c_f1:
+                filter_choice = st.selectbox(
+                    f"Filter Columns View ({fname})",
+                    ["All Columns", "Ambiguous / Review Needed", "Mapped Only", "Unmapped Passthrough"],
+                    key=f"flt_{fname}",
+                )
+            with c_f2:
+                search_sub = st.text_input(f"Search Column Name ({fname})", placeholder="Type to filter column...", key=f"search_{fname}")
+
+            if filter_choice == "Ambiguous / Review Needed":
+                active_cols = ambiguous_cols if ambiguous_cols else []
+            elif filter_choice == "Mapped Only":
+                active_cols = mapped_cols
+            elif filter_choice == "Unmapped Passthrough":
+                active_cols = unmapped_cols
+
+            if search_sub.strip():
+                active_cols = [c for c in active_cols if search_sub.strip().lower() in c.lower()]
+
+            st.caption(f"Showing {len(active_cols)} of {total_cols} columns")
 
         # Compact Mapping Review Table
-        table_rows = []
-        for col_name in df_cur.columns.tolist():
+        for col_name in active_cols:
             prop = proposals.get(col_name, {})
             current_target = dinfo["mapping"].get(col_name, "unmapped")
             sample_vals = ", ".join([str(v) for v in df_cur[col_name].dropna().astype(str).tolist()[:3] if str(v).strip()])
@@ -386,7 +446,8 @@ elif st.session_state.current_step == 3:
             with c_c4:
                 conf = prop.get("confidence", 1.0) * 100
                 reason = prop.get("reason", "Exact Match")
-                st.markdown(f"<span class='badge-tag'>{conf:.0f}% Confidence</span> <span style='color: #94A3B8; font-size: 0.8rem;'>{reason}</span>", unsafe_allow_html=True)
+                ambig_badge = "<span style='background: #D97706; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 700; margin-right: 4px;'>REVIEW</span>" if prop.get("is_ambiguous") else ""
+                st.markdown(f"{ambig_badge}<span class='badge-tag'>{conf:.0f}% Confidence</span> <span style='color: #94A3B8; font-size: 0.8rem;'>{reason}</span>", unsafe_allow_html=True)
 
         st.markdown("<hr style='margin: 14px 0; border-color: #1E293B;'>", unsafe_allow_html=True)
 
@@ -626,7 +687,7 @@ elif st.session_state.current_step == 6:
     if recs_df.empty:
         st.info("No records loaded yet. Please complete Steps 2-4 first.")
     else:
-        # Discover available identifier types from currently active canonical records
+        # Discover available identifier and attribute fields from actual stored database records
         available_types = set()
         for _, r in recs_df.iterrows():
             try:
@@ -636,44 +697,88 @@ elif st.session_state.current_step == 6:
             for k, v in nd.items():
                 if v and str(v).strip():
                     available_types.add(k)
+            try:
+                rd = json.loads(r["raw_fields_json"]) if isinstance(r.get("raw_fields_json"), str) else (r.get("raw_fields_json") or {})
+            except Exception:
+                rd = {}
+            for k, v in rd.items():
+                if v and str(v).strip():
+                    available_types.add(k)
 
-        preferred_order = ["email", "phone", "aadhaar", "username", "member_id", "name"]
+        # Also pull distinct canonical fields recorded in field_provenance
+        prov_fields = query_db("SELECT DISTINCT canonical_field FROM field_provenance")
+        if not prov_fields.empty:
+            for pf in prov_fields["canonical_field"].dropna().tolist():
+                if pf and str(pf).strip():
+                    available_types.add(str(pf).strip())
+
+        preferred_order = ["email", "phone", "aadhaar", "username", "member_id", "name", "sku", "product_id"]
         search_options = [t for t in preferred_order if t in available_types] + sorted([t for t in available_types if t not in preferred_order])
         if not search_options:
-            search_options = ["email", "phone", "aadhaar", "username", "member_id"]
+            search_options = ["entity_id"]
 
         col_s1, col_s2, col_s3 = st.columns([1.5, 3, 1])
         with col_s1:
-            search_type = st.selectbox("Identifier Type", search_options)
+            search_type = st.selectbox("Identifier / Field", search_options)
 
         # Dynamic sample value from current repository
         dynamic_sample = ""
-        for _, r in recs_df.iterrows():
-            try:
-                nd = json.loads(r["norm_fields_json"]) if isinstance(r.get("norm_fields_json"), str) else (r.get("norm_fields_json") or {})
-            except Exception:
-                nd = {}
-            if nd.get(search_type) and str(nd[search_type]).strip():
-                dynamic_sample = str(nd[search_type]).strip()
-                break
+        # Check field_provenance first
+        sample_prov = query_db("SELECT resolved_value FROM field_provenance WHERE canonical_field = ? LIMIT 1", [search_type])
+        if not sample_prov.empty:
+            dynamic_sample = str(sample_prov.iloc[0]["resolved_value"])
+        else:
+            for _, r in recs_df.iterrows():
+                try:
+                    nd = json.loads(r["norm_fields_json"]) if isinstance(r.get("norm_fields_json"), str) else (r.get("norm_fields_json") or {})
+                except Exception:
+                    nd = {}
+                if nd.get(search_type) and str(nd[search_type]).strip():
+                    dynamic_sample = str(nd[search_type]).strip()
+                    break
 
         with col_s2:
             search_query = st.text_input(
                 f"Enter {search_type.replace('_', ' ').title()} Value",
                 value=dynamic_sample,
-                placeholder=f"e.g. {dynamic_sample or 'Enter identifier...'}"
+                placeholder=f"e.g. {dynamic_sample or 'Enter search query...'}"
             )
         with col_s3:
             st.markdown("<br>", unsafe_allow_html=True)
             search_clicked = st.button("Search Entity", type="primary", use_container_width=True)
 
         if search_query.strip():
-            matcher = HierarchicalMatcher()
-            replay = matcher.replay_progressive_enrichment(search_type, search_query.strip(), edges_df, recs_df)
+            # 1. Search in field_provenance directly
+            matched_entity_id = None
+            q_clean = search_query.strip()
 
-            if not replay["found"]:
-                st.warning(replay["message"])
+            prov_matches = query_db("""
+                SELECT entity_id FROM field_provenance
+                WHERE canonical_field = ? AND LOWER(CAST(resolved_value AS VARCHAR)) = LOWER(?)
+                LIMIT 1
+            """, [search_type, q_clean])
+            if not prov_matches.empty:
+                matched_entity_id = prov_matches.iloc[0]["entity_id"]
             else:
+                # Substring search in provenance
+                prov_sub = query_db("""
+                    SELECT entity_id FROM field_provenance
+                    WHERE canonical_field = ? AND LOWER(CAST(resolved_value AS VARCHAR)) LIKE LOWER(?)
+                    LIMIT 1
+                """, [search_type, f"%{q_clean}%"])
+                if not prov_sub.empty:
+                    matched_entity_id = prov_sub.iloc[0]["entity_id"]
+
+            # 2. If search_type is entity_id or numeric ID, check master_entities directly
+            if not matched_entity_id and (search_type == "entity_id" or q_clean.isdigit()):
+                direct_ent = query_db("SELECT entity_id FROM master_entities WHERE entity_id = ?", [q_clean])
+                if not direct_ent.empty:
+                    matched_entity_id = direct_ent.iloc[0]["entity_id"]
+
+            # 3. Fallback: Search via HierarchicalMatcher replay
+            matcher = HierarchicalMatcher()
+            replay = matcher.replay_progressive_enrichment(search_type, q_clean, edges_df, recs_df)
+            if replay.get("found"):
                 cluster_uuids = replay["cluster_record_uuids"]
                 ent_row = query_db("""
                     SELECT m.* FROM master_entities m
@@ -681,10 +786,25 @@ elif st.session_state.current_step == 6:
                     WHERE em.record_uuid IN ({})
                     LIMIT 1
                 """.format(", ".join(["?"] * len(cluster_uuids))), cluster_uuids)
+                if not ent_row.empty:
+                    matched_entity_id = ent_row.iloc[0]["entity_id"]
 
+            if not matched_entity_id:
+                st.warning(f"No entity found matching {search_type} = '{q_clean}'.")
+            else:
+                ent_row = query_db("SELECT * FROM master_entities WHERE entity_id = ? LIMIT 1", [matched_entity_id])
                 if not ent_row.empty:
                     ent = ent_row.iloc[0]
                     raw_d = json.loads(ent['raw_attributes_json']) if ent.get('raw_attributes_json') else {}
+                    cluster_members = query_db("SELECT record_uuid FROM entity_members WHERE entity_id = ?", [matched_entity_id])
+                    cluster_uuids = cluster_members["record_uuid"].tolist() if not cluster_members.empty else []
+
+                    # Re-run replay on first member if replay wasn't populated
+                    if not replay.get("found") and cluster_uuids:
+                        rec_match = recs_df[recs_df["record_uuid"] == cluster_uuids[0]]
+                        if not rec_match.empty:
+                            seed_val = rec_match.iloc[0].get("source_record_id") or cluster_uuids[0]
+                            replay = matcher.replay_progressive_enrichment("source_record_id", seed_val, edges_df, recs_df)
                     
                     # Construct dynamic attributes display
                     attr_pills = []

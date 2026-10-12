@@ -92,6 +92,7 @@ class DatabaseManager:
                 name_norm VARCHAR,
                 company_norm VARCHAR,
                 address_norm VARCHAR,
+                mapped_cols_json VARCHAR DEFAULT '[]',
                 is_unmatched BOOLEAN DEFAULT TRUE,
                 ingested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );

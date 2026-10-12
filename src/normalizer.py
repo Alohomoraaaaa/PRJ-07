@@ -18,13 +18,16 @@ class DataNormalizer:
 
     @staticmethod
     def is_null_val(val: Any) -> bool:
-        """Check if a raw field value is null or empty."""
+        """Check if a raw field value is null or empty across all data types."""
         if val is None:
             return True
-        if isinstance(val, float) and (np.isnan(val) or pd.isna(val)):
-            return True
+        try:
+            if pd.isna(val):
+                return True
+        except Exception:
+            pass
         s = str(val).strip()
-        if not s or s.lower() in ("nan", "none", "null", "undefined", "n/a", "na", "-", ""):
+        if not s or s.lower() in ("nan", "none", "null", "undefined", "n/a", "na", "-", "<na>", "nat"):
             return True
         return False
 
@@ -42,14 +45,24 @@ class DataNormalizer:
     def normalize_phone(cls, val: Any) -> Tuple[str, bool]:
         """
         Normalize phone numbers by stripping non-digit characters and standardizing prefixes.
-        Converts +91 98765-43210, 09876543210, (022) 88776655 -> clean numeric representation.
+        Converts +91 98765-43210, 09876543210, (555) 234-5678, 9876543210.0 -> clean standard representation.
         """
         if cls.is_null_val(val):
             return "", True
-        s = str(val).strip()
+        if isinstance(val, (float, np.floating)):
+            if np.isnan(val):
+                return "", True
+            s = f"{int(val)}" if val.is_integer() else str(val)
+        else:
+            s = str(val).strip()
+            if s.endswith(".0"):
+                s = s[:-2]
+
         digits = re.sub(r"\D", "", s)
 
-        # Standard Indian / General mobile prefixes
+        # Standard international and domestic trunk prefixes
+        if digits.startswith("00"):
+            digits = digits[2:]
         if len(digits) == 12 and digits.startswith("91"):
             digits = digits[2:]
         elif len(digits) == 11 and digits.startswith("0"):
@@ -57,7 +70,7 @@ class DataNormalizer:
         elif len(digits) == 11 and digits.startswith("1"):
             digits = digits[1:]
 
-        is_valid = len(digits) >= 7 and len(digits) <= 15
+        is_valid = 7 <= len(digits) <= 15
         return digits, is_valid
 
     @classmethod
@@ -68,6 +81,30 @@ class DataNormalizer:
         s = str(val).strip()
         clean = re.sub(r"\s+", " ", s).title()
         return clean, True
+
+    @classmethod
+    def normalize_sku(cls, val: Any) -> Tuple[str, bool]:
+        """Normalize product SKU / part number (strip, uppercase, standardize separators)."""
+        if cls.is_null_val(val):
+            return "", True
+        s = str(val).strip().upper()
+        if s.endswith(".0"):
+            s = s[:-2]
+        s = re.sub(r"[\s_]+", "-", s)
+        is_valid = len(s) >= 2
+        return s, is_valid
+
+    @classmethod
+    def normalize_barcode(cls, val: Any) -> Tuple[str, bool]:
+        """Normalize barcode, UPC, EAN, or GTIN (clean alphanumeric digits, remove dots)."""
+        if cls.is_null_val(val):
+            return "", True
+        s = str(val).strip()
+        if s.endswith(".0"):
+            s = s[:-2]
+        clean = re.sub(r"[^A-Za-z0-9]", "", s).upper()
+        is_valid = len(clean) >= 4
+        return clean, is_valid
 
     @classmethod
     def normalize_username(cls, val: Any) -> Tuple[str, bool]:
@@ -133,17 +170,21 @@ class DataNormalizer:
             return cls.normalize_phone(value)
         elif field_type == "aadhaar":
             return cls.normalize_aadhaar(value)
+        elif field_type == "sku":
+            return cls.normalize_sku(value)
+        elif field_type == "barcode":
+            return cls.normalize_barcode(value)
         elif field_type in ("name", "business_name", "first_name", "last_name"):
             return cls.normalize_name(value)
         elif field_type == "username":
             return cls.normalize_username(value)
-        elif field_type == "member_id":
+        elif field_type in ("member_id", "uid"):
             return cls.normalize_member_id(value)
         elif field_type in ("address", "city"):
             return cls.normalize_address(value)
         elif field_type == "company":
             return cls.normalize_company(value)
-        elif field_type in ("rating", "review_count", "latitude", "longitude", "numeric"):
+        elif field_type in ("rating", "review_count", "latitude", "longitude", "numeric", "price", "stock", "followers", "following"):
             return cls.normalize_numeric_field(value)
         else:
             if cls.is_null_val(value):
@@ -152,30 +193,42 @@ class DataNormalizer:
             return s, True
 
     @classmethod
+    def preserve_typed_val(cls, val: Any) -> Any:
+        """Preserve native typed values (bool, int, float, str) without forcing everything to string."""
+        if cls.is_null_val(val):
+            return None
+        if isinstance(val, (bool, np.bool_)):
+            return bool(val)
+        if isinstance(val, (int, np.integer)):
+            return int(val)
+        if isinstance(val, (float, np.floating)):
+            return float(val)
+        if hasattr(val, "isoformat"):
+            return val.isoformat()
+        return str(val).strip()
+
+    @classmethod
     def process_raw_record(
         cls,
         raw_row: Dict[str, Any],
         column_mapping: Dict[str, str],
-    ) -> Tuple[Dict[str, str], Dict[str, str], Dict[str, bool]]:
+    ) -> Tuple[Dict[str, Any], Dict[str, str], Dict[str, bool]]:
         """
         Process a single raw source row.
-        Guarantees that ALL original raw columns are preserved in raw_fields.
+        Guarantees that ALL original raw columns are preserved in raw_fields with native types.
         Returns:
-            raw_fields: Dict of original raw string values {raw_col: raw_val}
+            raw_fields: Dict of original raw values {raw_col: typed_val}
             norm_fields: Dict of canonical normalized string values {canonical_field: norm_val}
             validity_flags: Dict {canonical_field: is_valid}
         """
-        raw_fields: Dict[str, str] = {}
+        raw_fields: Dict[str, Any] = {}
         norm_fields: Dict[str, str] = {}
         validity_flags: Dict[str, bool] = {}
 
         for raw_col, raw_val in raw_row.items():
-            if cls.is_null_val(raw_val):
-                str_val = ""
-            else:
-                str_val = str(raw_val).strip()
-
-            raw_fields[raw_col] = str_val
+            typed_val = cls.preserve_typed_val(raw_val)
+            raw_fields[raw_col] = typed_val
+            str_val = "" if typed_val is None else str(typed_val).strip()
 
             canonical = column_mapping.get(raw_col, "unmapped")
             if canonical != "unmapped":

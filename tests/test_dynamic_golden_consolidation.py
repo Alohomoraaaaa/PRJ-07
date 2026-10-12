@@ -18,10 +18,54 @@ from src.config import DEFAULT_DB_PATH
 from src.database import DatabaseManager
 from src.pipeline import run_dynamic_user_pipeline
 from src.master_records import get_unified_master_dataframe
+from src.master_records import _consolidate_equivalent_attributes
 from src.matcher import HierarchicalMatcher
 
 
 class TestDynamicGoldenConsolidation(unittest.TestCase):
+
+    def test_final_attributes_remove_metadata_and_merge_only_equivalents(self):
+        rows = [
+            {
+                "record_uuid": "REC_1",
+                "name": "Alex Mercer",
+                "display_name": " alex   mercer ",
+                "income": "1000",
+                "annual_income": 1000.0,
+                "role": "Engineer",
+            },
+            {
+                "record_uuid": "REC_2",
+                "name": "Elena Rostova",
+                "display_name": "Elena Rostova",
+                "income": "2000",
+                "annual_income": 2000,
+                "role": "Designer",
+            },
+        ]
+
+        consolidated = _consolidate_equivalent_attributes(rows)
+
+        self.assertNotIn("record_uuid", consolidated[0])
+        self.assertIn("name", consolidated[0])
+        self.assertNotIn("display_name", consolidated[0])
+        self.assertEqual(
+            len(set(consolidated[0]).intersection({"income", "annual_income"})),
+            1,
+        )
+        self.assertEqual(consolidated[0]["role"], "Engineer")
+
+    def test_equivalent_attribute_consolidation_keeps_distinct_values(self):
+        rows = [
+            {"attribute_a": "North", "attribute_b": "North", "attribute_c": "North"},
+            {"attribute_a": "South", "attribute_b": "South", "attribute_c": "West"},
+        ]
+
+        consolidated = _consolidate_equivalent_attributes(rows)
+
+        self.assertIn("attribute_a", consolidated[0])
+        self.assertNotIn("attribute_b", consolidated[0])
+        self.assertIn("attribute_c", consolidated[0])
 
     def setUp(self):
         self.test_db_path = "data/test_dynamic_golden.duckdb"

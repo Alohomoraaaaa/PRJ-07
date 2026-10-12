@@ -77,23 +77,9 @@ class GeminiSchemaMapper:
             samples[str(col)] = valid_samples[:max_samples]
         return samples
 
-    def suggest_mappings(self, df: pd.DataFrame, dataset_name: str = "") -> Dict[str, Dict[str, Any]]:
-        """
-        Suggest canonical field mappings for a DataFrame.
-        Tries Gemini Flash-Lite first; falls back to deterministic engine on failure.
-        """
-        columns = [str(c) for c in df.columns]
-        samples = self._extract_samples(df)
-
-        if not self.api_key:
-            # Deterministic fallback
-            return self.fallback_engine.suggest_mappings_for_table(columns)
-
-        canonical_list = list(CANONICAL_FIELDS.keys()) + [
-            "bio", "followers", "following", "platform", "department", "salary"
-        ]
+    def _call_gemini_batch(self, batch_samples: Dict[str, List[str]], canonical_list: List[str]) -> Optional[Dict[str, Any]]:
+        """Call Gemini API for a single batch of columns and samples."""
         canonical_desc = ", ".join(canonical_list)
-
         prompt = f"""You are an expert Data Engineer specializing in Schema Matching and Entity Resolution.
 Given the dataset columns and representative sample values below, map each column to the most appropriate canonical concept from the provided allowed list, or suggest a clean canonical snake_case attribute name if it represents a distinct semantic concept:
 
@@ -101,7 +87,7 @@ Allowed Canonical Concepts:
 {canonical_desc}
 
 Dataset Columns and Sample Values:
-{json.dumps(samples, indent=2)}
+{json.dumps(batch_samples, indent=2)}
 
 Mapping Guidelines:
 - "email", "email_id", "email_address", "contact_email" -> "email"
@@ -110,9 +96,12 @@ Mapping Guidelines:
 - "first_name", "fname", "given_name" -> "first_name"
 - "last_name", "lname", "surname" -> "last_name"
 - "aadhaar", "aadhar_number", "aadhaar_no", "national_id" -> "aadhaar"
-- "username", "handle", "account_name" -> "username"
-- "city", "city_name", "town", "locality" -> "city"
+- "username", "user_handle" -> "username"
+- "user_id", "uid", "userid" -> "uid" (never username, member_id, or aadhaar)
+- "city", "city_name", "town", "locality", "location", "home_city" -> "city"
 - "address", "residential_address", "street", "residence" -> "address"
+- "last_active", "last_seen", "last_login", "updated_at" stay as their own snake_case name, never "last_name"
+- If a table has multiple handle-like columns (handle, screen_name, username), map only the primary one to "username" and keep the others as their original names
 - "company", "organization", "workplace", "employer" -> "company"
 - "bio", "bio_text", "biography", "user_bio", "about_me" -> "bio"
 - "followers", "followers_count", "follower_count", "subscribers" -> "followers"
@@ -139,7 +128,6 @@ Example JSON format:
   "full_name": {{"suggested_canonical": "name", "confidence": 0.98, "reason": "Full person name with title formatting"}}
 }}
 """
-
         for model_name in self.models_to_try:
             try:
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={self.api_key}"
@@ -151,35 +139,77 @@ Example JSON format:
                         "responseMimeType": "application/json",
                     }
                 }
-
-                resp = requests.post(url, headers=headers, json=payload, timeout=10)
+                resp = requests.post(url, headers=headers, json=payload, timeout=12)
                 if resp.status_code == 200:
                     data = resp.json()
                     raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
                     clean_text = re.sub(r"^```json\s*", "", raw_text.strip())
                     clean_text = re.sub(r"\s*```$", "", clean_text.strip())
                     parsed = json.loads(clean_text)
-
-                    # Validate output contains all columns
-                    results = {}
-                    for col in columns:
-                        if col in parsed and isinstance(parsed[col], dict):
-                            sug = parsed[col].get("suggested_canonical", "unmapped")
-                            if sug not in canonical_list and sug != "unmapped":
-                                sug = "unmapped"
-                            results[col] = {
-                                "raw_column": col,
-                                "suggested_canonical": sug,
-                                "confidence": float(parsed[col].get("confidence", 0.90)),
-                                "reason": f"[AI] {parsed[col].get('reason', 'Gemini AI Suggested')}",
-                                "is_approved": False,
-                            }
-                        else:
-                            fallback_single = self.fallback_engine.suggest_single_column_mapping(col)
-                            results[col] = fallback_single
-                    return results
-            except Exception as e:
+                    if isinstance(parsed, dict):
+                        return parsed
+            except Exception:
                 continue
+        return None
 
-        # Fallback if API calls fail
-        return self.fallback_engine.suggest_mappings_for_table(columns)
+    def suggest_mappings(self, df: pd.DataFrame, dataset_name: str = "") -> Dict[str, Dict[str, Any]]:
+        """
+        Suggest canonical field mappings for a DataFrame.
+        Batches wide datasets (100+ columns) to avoid payload timeouts,
+        falls back to deterministic engine gracefully, and flags ambiguous collisions.
+        """
+        columns = [str(c) for c in df.columns]
+        samples = self._extract_samples(df)
+
+        if not self.api_key:
+            # Deterministic fallback with collision detection
+            return self.fallback_engine.suggest_mappings_for_table(columns)
+
+        canonical_list = list(CANONICAL_FIELDS.keys()) + [
+            "bio", "followers", "following", "platform", "department", "salary"
+        ]
+
+        # Chunk columns to prevent timeouts or token limits on wide schemas
+        chunk_size = 25
+        results: Dict[str, Dict[str, Any]] = {}
+
+        for i in range(0, len(columns), chunk_size):
+            chunk_cols = columns[i : i + chunk_size]
+            chunk_samples = {col: samples.get(col, []) for col in chunk_cols}
+
+            ai_parsed = self._call_gemini_batch(chunk_samples, canonical_list)
+            if ai_parsed:
+                for col in chunk_cols:
+                    if col in ai_parsed and isinstance(ai_parsed[col], dict):
+                        sug = ai_parsed[col].get("suggested_canonical", "unmapped")
+                        clean_col = self.fallback_engine.clean_header_name(col)
+                        if sug in ("last_name", "first_name", "name") and any(
+                            tok in clean_col.split("_") for tok in ("active", "seen", "login", "timestamp")
+                        ):
+                            sug = "unmapped"
+                        if sug in ("username", "member_id", "aadhaar") and clean_col in ("user_id", "userid", "uid"):
+                            sug = "uid"
+                        if sug not in canonical_list and sug != "unmapped":
+                            if re.match(r"^[a-z][a-z0-9_]*$", str(sug)):
+                                pass
+                            else:
+                                sug = "unmapped"
+                        results[col] = {
+                            "raw_column": col,
+                            "suggested_canonical": sug,
+                            "confidence": float(ai_parsed[col].get("confidence", 0.90)),
+                            "reason": f"[AI] {ai_parsed[col].get('reason', 'Gemini AI Suggested')}",
+                            "is_approved": False,
+                            "is_ambiguous": False,
+                        }
+                    else:
+                        fallback_single = self.fallback_engine.suggest_single_column_mapping(col)
+                        results[col] = fallback_single
+            else:
+                # Deterministic fallback for this chunk
+                for col in chunk_cols:
+                    fallback_single = self.fallback_engine.suggest_single_column_mapping(col)
+                    results[col] = fallback_single
+
+        return self.fallback_engine.apply_collision_resolution(results)
+
