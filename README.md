@@ -21,7 +21,7 @@ Python, Streamlit, pandas, NumPy, DuckDB, scikit-learn, NetworkX, RapidFuzz, Plo
 ## Local Run
 
 ```bash
-\.\.venv\Scripts\streamlit.exe run app.py
+.venv\Scripts\streamlit.exe run app.py
 ```
 
 ---

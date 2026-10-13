@@ -31,13 +31,19 @@ class TestGeminiAIMapper(unittest.TestCase):
         self.assertTrue(key is None or isinstance(key, str))
 
     def test_02_sample_extraction(self):
-        """Verify only 2-3 samples per column are extracted."""
+        """Verify values come from the first non-empty row of the same dataset."""
         mapper = GeminiSchemaMapper()
-        samples = mapper._extract_samples(self.df_social, max_samples=2)
+        df = pd.DataFrame([
+            {"user_handle": None, "full_name": "", "contact_email": None},
+            {"user_handle": "first_handle", "full_name": "First Person", "contact_email": "first@example.com"},
+            {"user_handle": "later_handle", "full_name": "Later Person", "contact_email": "later@example.com"},
+        ])
+        samples = mapper._extract_samples(df)
         self.assertIn("user_handle", samples)
-        self.assertLessEqual(len(samples["user_handle"]), 2)
+        self.assertEqual(samples["user_handle"], ["first_handle"])
+        self.assertEqual(samples["full_name"], ["First Person"])
         self.assertIn("contact_email", samples)
-        self.assertEqual(samples["contact_email"][0], "alice@gmail.com")
+        self.assertEqual(samples["contact_email"], ["first@example.com"])
 
     def test_03_mapping_execution_and_fallback(self):
         """Verify schema mapping suggestions with fallback guarantee."""

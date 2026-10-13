@@ -599,7 +599,11 @@ elif st.session_state.current_step == 5:
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("### Master table")
-    st.dataframe(df_master, use_container_width=True, hide_index=True)
+    st.dataframe(
+        df_master.drop(columns=["cluster_size", "sources"], errors="ignore"),
+        use_container_width=True,
+        hide_index=True,
+    )
 
     # Explainability Section
     st.markdown("---")

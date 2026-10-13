@@ -1,7 +1,7 @@
 """
 Gemini AI-Assisted Schema Mapping Engine (PRJ-07).
 Uses Gemini 2.5 Flash-Lite to intelligently suggest canonical field mappings
-by analyzing column names and 2-3 sample values per column.
+by analyzing column names and values from the first non-empty dataset row.
 Includes deterministic fallback when offline or without API key.
 """
 
@@ -55,7 +55,7 @@ def get_gemini_api_key() -> Optional[str]:
 class GeminiSchemaMapper:
     """
     Intelligent schema mapper utilizing Gemini Flash-Lite.
-    Never sends full datasets — only column names and 2-3 sample values.
+    Never sends full datasets — only column names and values from one representative row.
     """
 
     def __init__(self, api_key: Optional[str] = None):
@@ -69,16 +69,37 @@ class GeminiSchemaMapper:
         ]
 
     def _extract_samples(self, df: pd.DataFrame, max_samples: int = 3) -> Dict[str, List[str]]:
-        """Extract up to 3 non-null string samples for each column."""
+        """Extract values from the first row containing at least one non-empty field."""
+        del max_samples  # Retained for compatibility with existing callers.
+
+        def is_non_empty(value: Any) -> bool:
+            if value is None:
+                return False
+            try:
+                if pd.isna(value):
+                    return False
+            except (TypeError, ValueError):
+                pass
+            text = str(value).strip()
+            return bool(text) and text.lower() not in ("nan", "none", "null", "undefined", "n/a", "na")
+
+        representative_row = None
+        for _, row in df.iterrows():
+            if any(is_non_empty(value) for value in row.tolist()):
+                representative_row = row
+                break
+
+        if representative_row is None:
+            return {str(col): [] for col in df.columns}
+
         samples = {}
         for col in df.columns:
-            non_nulls = df[col].dropna().astype(str).str.strip()
-            valid_samples = [s for s in non_nulls if s and s.lower() not in ("nan", "none", "null", "")]
-            samples[str(col)] = valid_samples[:max_samples]
+            value = representative_row[col]
+            samples[str(col)] = [str(value).strip()] if is_non_empty(value) else []
         return samples
 
     def _call_gemini_batch(self, batch_samples: Dict[str, List[str]], canonical_list: List[str]) -> Optional[Dict[str, Any]]:
-        """Call Gemini API for a single batch of columns and samples."""
+        """Call Gemini API for a single batch of columns and one-row samples."""
         canonical_desc = ", ".join(canonical_list)
         prompt = f"""You are an expert Data Engineer specializing in Schema Matching and Entity Resolution.
 Given the dataset columns and representative sample values below, map each column to the most appropriate canonical concept from the provided allowed list, or suggest a clean canonical snake_case attribute name if it represents a distinct semantic concept:
@@ -86,7 +107,7 @@ Given the dataset columns and representative sample values below, map each colum
 Allowed Canonical Concepts:
 {canonical_desc}
 
-Dataset Columns and Sample Values:
+Dataset Columns and Values from the First Non-Empty Row:
 {json.dumps(batch_samples, indent=2)}
 
 Mapping Guidelines:
